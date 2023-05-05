@@ -17,5 +17,6 @@ canvas{
     border-radius: 10px;
 }
 #controls{
-    padding-top: 10%;
+    margin-top: 10%;
+    width:  175px;
 }
