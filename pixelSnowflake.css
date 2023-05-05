@@ -1,0 +1,18 @@
+/*center canvas vertically and horizontally*/
+canvas{
+    display: block;
+    margin: auto;
+    background-color: aliceblue;
+    border: 1px solid gray;
+    border-radius: 10px;
+
+}
+#sketch-holder{
+    display: flex;
+    margin:auto;
+    background-color: aliceblue;
+    width: 900px;
+    height: 850px;
+    border: 1px solid #c6c6c6;
+    border-radius: 10px;
+}
