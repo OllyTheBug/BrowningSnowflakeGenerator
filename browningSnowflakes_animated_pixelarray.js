@@ -4,11 +4,13 @@
 // noinspection JSUnusedGlobalSymbols
 
 /* ------------------------------- PARAMETERS ------------------------------- */
-let _frameRate = 60;
+const _frameRate = 60;
 let centerHorizontal;
 let leftness = 1;
 let rightness = 1;
 let density = 10;
+let oscillationSpeed = 0;
+let selectedColor = [0, 255, 255, 255];
 /* -------------------------------- INTERNAL -------------------------------- */
 const fallingLimit = 1000;
 const sin45 = Math.sin(Math.PI / 4);
@@ -30,7 +32,6 @@ let ctx;
 function setup() {
     let canvas = createCanvas(800, 800);
     ctx = canvas.drawingContext;
-    ctx.shadowcolor = "rgba(0,0,0,0.5)";
     canvas.parent("sketch-holder");
     centerHorizontal = (width * 4) * (height / 2);
     emitterPixel = (width * 2);
@@ -53,6 +54,7 @@ function setup() {
 
 /* -------------------------------------------------------------------------- */
 function draw() {
+    currentColor = oscillationSpeed > 0 ? oscilateColor() : selectedColor;
     background(0);
     translate(width / 2, height / 2);
     img.loadPixels();
@@ -73,12 +75,7 @@ function draw() {
     updateFallingParticles();
     landedToPixelArray();
     mirrorPixelArrayAcrossVertical();
-    // mirrorPixelArrayAcrossHorizontal();
-    // imposeRotatedPixelArray(getRotatedNinetyDeg());
     img.updatePixels();
-    // image(img, 0, 0);
-    // rotate(PI / 4);
-    // image(img, 0, 0);
     for (let i = 0; i<6; i++){
         rotate(PI/3);
         image(img, 0, 0);
@@ -89,7 +86,6 @@ function draw() {
 
 /* -------------------------------------------------------------------------- */
 /*                         // SECTION PARTICLE CHECKS                         */
-
 /* -------------------------------------------------------------------------- */
 
 function pixelAtVCenter(particle) {
@@ -98,18 +94,6 @@ function pixelAtVCenter(particle) {
 
 }
 
-function pixelAtHCenter(particle) {
-    if (xyToIndex(particle.pos) % (width * 4) >= (width * 4) / 2) {
-        return true;
-    }
-}
-
-function pixelAtEmitter(particle) {
-    // if pixel hasn't left the emitter, return true
-    return xyToIndex(particle.pos) <= emitterPixel;
-}
-
-// NOTE - Uses global landedParticles
 function particleAdjacentToLanded(particle) {
     let root = xyToIndex(particle.pos);
     //check the eight pixels surrounding the particleA
@@ -151,7 +135,7 @@ function fall(particle) {
 }
 
 function land(particle) {
-    var root = xyToIndex(particle.pos);
+    const root = xyToIndex(particle.pos);
     lockedIndexes[root / 4] = 1;
     indexColors[root / 4] = particle.color;
 
@@ -195,39 +179,7 @@ function addFallingParticlesToPixelArray() {
 
 /* -------------------------------------------------------------------------- */
 /*                        // SECTION - TRANSFORMATIONS                        */
-
 /* -------------------------------------------------------------------------- */
-
-function imposeRotatedPixelArray(rotatedPixels) {
-    // OR the rotated pixels with the current pixels
-    for (let i = 0; i < img.pixels.length; i += 4) {
-        if (rotatedPixels[i + 3] === 255) {
-            img.pixels[i] = 255;
-            img.pixels[i + 1] = 255;
-            img.pixels[i + 2] = 255;
-            img.pixels[i + 3] = 255;
-        }
-    }
-}
-
-function getRotatedNinetyDeg() {
-    let rotatedPixels = Array(pixels.length).fill(0);
-    for (let i = 0; i < pixels.length; i += 4) {
-
-        if (img.pixels[i + 3] === 255) {
-            let pos = indexToXY(i);
-            let newPos = [-pos[1], pos[0]];
-            let newIndex = xyToIndex(newPos);
-            rotatedPixels[newIndex] = 255;
-            rotatedPixels[newIndex + 1] = 255;
-            rotatedPixels[newIndex + 2] = 255;
-            rotatedPixels[newIndex + 3] = 255;
-        }
-
-    }
-    return rotatedPixels;
-}
-
 function mirrorPixelArrayAcrossVertical() {
     for (let i = 0; i < pixels.length; i += 4) {
         // if pixel (x,y) is white, make pixel (-y,x) white
@@ -243,23 +195,11 @@ function mirrorPixelArrayAcrossVertical() {
     }
 }
 
-function mirrorPixelArrayAcrossHorizontal() {
-    for (let i = 0; i < pixels.length; i += 4) {
-        // if pixel (x,y) is white, make pixel (-y,x) white
-        if (img.pixels[i + 3] === 255) {
-            let pos = indexToXY(i);
-            let newPos = [pos[0], height - pos[1]];
-            let newIndex = xyToIndex(newPos);
-            img.pixels[newIndex] = 255;
-            img.pixels[newIndex + 1] = 255;
-            img.pixels[newIndex + 2] = 255;
-            img.pixels[newIndex + 3] = 255;
-        }
-    }
-}
+/* ------------------------------ // !SECTION ----------------------------- */
+/* ------------------------------------------------------------------------ */
+/*                           // SECTION - CONTROLS                          */
+/* ------------------------------------------------------------------------ */
 
-/* ------------------------------ // !SECTION ------------------------------ */
-//Page controls
 //When #leftness slider changes, update leftness
 $("#leftness").on("input", function () {
     leftness = this.value;
@@ -282,7 +222,7 @@ $("#framerate").on("input", function () {
 });
 //When color slider changes, update currentColor
 $("#color-picker").on("input", function () {
-    currentColor = hexToRgb(this.value);
+    selectedColor = hexToRgb(this.value);
 });
 //When clear button is clicked, clear the canvas, reset the lockedIndexes, and reset the fallingParticles
 $("#clearButton").on("click", function () {
@@ -300,17 +240,50 @@ $("#stopButton").on("click", function () {
 $("#playButton").on("click", function () {
     loop();
 });
-
+//When oscillation speed slider changes, update oscillation speed
+$("#oscillation").on("input", function () {
+    oscillationSpeed = this.value;
+    $("#oscn").text(this.value);
+});
 //Helper functions
+
+//oscillate over the entire color spectrum
+function oscilateColor() {
+    let hue = frameCount * 2 * map(oscillationSpeed,0,10,0,20) % 360;
+    let sat = 1;
+    let val = 1;
+    return HSVtoRGB(hue, sat, val);
+}
 //Convert hex color to rgb array
 function hexToRgb(hex) {
     if (hex.length === 4) {
         hex = hex + hex[1] + hex[2] + hex[3];
-
     }
     let r = parseInt(hex.substring(1, 3), 16);
     let g = parseInt(hex.substring(3, 5), 16);
     let b = parseInt(hex.substring(5, 7), 16);
     let a = 255;
     return [r, g, b, a];
+}
+function HSVtoRGB(hue, sat, val) {
+    let chroma = val * sat;
+    let huePrime = hue / 60;
+    let x = chroma * (1 - Math.abs((huePrime % 2) - 1));
+    let r1, g1, b1;
+    if (huePrime >= 0 && huePrime <= 1) {
+        [r1, g1, b1] = [chroma, x, 0];
+    } else if (huePrime >= 1 && huePrime <= 2) {
+        [r1, g1, b1] = [x, chroma, 0];
+    } else if (huePrime >= 2 && huePrime <= 3) {
+        [r1, g1, b1] = [0, chroma, x];
+    } else if (huePrime >= 3 && huePrime <= 4) {
+        [r1, g1, b1] = [0, x, chroma];
+    } else if (huePrime >= 4 && huePrime <= 5) {
+        [r1, g1, b1] = [x, 0, chroma];
+    } else if (huePrime >= 5 && huePrime <= 6) {
+        [r1, g1, b1] = [chroma, 0, x];
+    }
+    let m = val - chroma;
+    let [r, g, b] = [r1 + m, g1 + m, b1 + m];
+    return [r * 255, g * 255, b * 255, 255];
 }
